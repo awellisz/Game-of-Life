@@ -14,6 +14,8 @@
 #define CYN  "\x1B[36m"
 #define WHT  "\x1B[37m"
 
+enum modes { RANDOM, MANUAL, BATCH, PRESET };
+
 #define YANG 1
 #define KOHM -1
 
@@ -27,45 +29,58 @@ int main(int argc, char *argv[]) {
 
     int nseed = 0;
     int n = SIZE;
-    int num_neighbors, manual, i, j;
+    int num_neighbors, setup_mode, i, j;
 
-
-    printf("ENTER 0 FOR RANDOM, 1 FOR MANUAL, 2 FOR BATCH MANUAL");
-    scanf("%d", &manual);
+    printf("ENTER A NUMBER TO CHOOSE SETUP MODE:\n");
+    printf("    0: RANDOM\n");
+    printf("    1: MANUAL (SET INDIVIDUAL CELLS)\n");
+    printf("    2: BATCH MANUAL (INPUT WAN STRING)\n");
+    printf("    3: PRESETS (VIEW COOL PRESET OPTIONS)\n");
+    scanf("%d", &setup_mode);
 
     // ALTERNATIVE SETUP: SOMETHING AKIN TO FEN STRINGS IN CHESS
     // EG Y FOR YANG, K FOR KOHM, NUMBERS FOR BLANK SPACES TO COMPRESS THE
     //   FULL 36X36 BOARD INTO A COMPRESSED STRING
 
-    if (manual) {
-        while (true) {
-            printf("ENTER COORDINATES OF LIVE CELLS AS (I,J); WRITE 0,0 WHEN DONE\n");
-            scanf("%d,%d", &i, &j);
-            if (i == 0 && j == 0) break;
-            state[i][j] = 1;
-            display(state);
-        }
-    } else {
-        
-        printf("ENTER A FIVE DIGIT INTEGER TO CHANGE SEED\n");
-        scanf("%d", &nseed);
-        srand(nseed);
+    switch(setup_mode) {
+        case (RANDOM):
+            printf("ENTER A FIVE DIGIT INTEGER TO CHANGE SEED\n");
+            scanf("%d", &nseed);
+            srand(nseed);
 
-        float rn1;
-        for (i = 0; i < n; i++) {
-            for (j = 0; j < n; j++) {
-                rn1 = (double)rand() / RAND_MAX;
-                if (rn1 < 0.7) {
-                    state[i][j] = 0;
-                } else { 
-                    if (j > n/2) {
-                        state[i][j] = YANG;
-                    } else {
-                        state[i][j] = KOHM;
+            float rn1;
+            for (i = 0; i < n; i++) {
+                for (j = 0; j < n; j++) {
+                    rn1 = (double)rand() / RAND_MAX;
+                    if (rn1 < 0.7) {
+                        state[i][j] = 0;
+                    } else { 
+                        if (j > n/2) {
+                            state[i][j] = YANG;
+                        } else {
+                            state[i][j] = KOHM;
+                        }
                     }
                 }
             }
-        }
+            break;
+        case (MANUAL):
+            while (true) {
+                printf("ENTER COORDINATES OF LIVE CELLS AS I,J; WRITE 0,0 WHEN DONE\n");
+                scanf("%d,%d", &i, &j);
+                if (i == 0 && j == 0) break;
+                state[i][j] = 1;
+                display(state);
+            }
+            break;
+        case (BATCH):
+            break;
+        case (PRESET):
+            break;
+        default:
+            printf("An error occured.");
+            exit(0);
+            break;
     }
 
     display(state);
@@ -136,7 +151,8 @@ void display(int state[SIZE][SIZE]) {
         }
         printf("\n" RESET);
     }
-    usleep(1000 * 100); // 100 milliseconds -> ~15 fps animation
+
+    usleep(1000 * 33);  //microseconds 
 }
 
 int count_neighbors(int state[SIZE][SIZE], int i, int j) {
