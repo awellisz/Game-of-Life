@@ -19,6 +19,7 @@
 
 int count_neighbors(int state[SIZE][SIZE], int i, int j);
 void display(int state[SIZE][SIZE]);
+void parse_wan(char *wan);
 
 int main(int argc, char *argv[]) {
     int state[SIZE][SIZE] = {0};
@@ -29,8 +30,12 @@ int main(int argc, char *argv[]) {
     int num_neighbors, manual, i, j;
 
 
-    printf("ENTER 1 FOR MANUAL SETUP, 0 FOR RANDOM:");
+    printf("ENTER 0 FOR RANDOM, 1 FOR MANUAL, 2 FOR BATCH MANUAL");
     scanf("%d", &manual);
+
+    // ALTERNATIVE SETUP: SOMETHING AKIN TO FEN STRINGS IN CHESS
+    // EG Y FOR YANG, K FOR KOHM, NUMBERS FOR BLANK SPACES TO COMPRESS THE
+    //   FULL 36X36 BOARD INTO A COMPRESSED STRING
 
     if (manual) {
         while (true) {
