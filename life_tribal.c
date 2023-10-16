@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 #define SIZE 36
 
@@ -21,7 +22,7 @@ enum modes { RANDOM, MANUAL, BATCH, PRESET };
 
 int count_neighbors(int state[SIZE][SIZE], int i, int j);
 void display(int state[SIZE][SIZE]);
-void parse_wan(char *wan);
+void parse_dan(char *dan, int *state[SIZE][SIZE]);
 
 int main(int argc, char *argv[]) {
     int state[SIZE][SIZE] = {0};
@@ -30,6 +31,8 @@ int main(int argc, char *argv[]) {
     int nseed = 0;
     int n = SIZE;
     int num_neighbors, setup_mode, i, j;
+
+    int tribal = false;
 
     printf("ENTER A NUMBER TO CHOOSE SETUP MODE:\n");
     printf("    0: RANDOM\n");
@@ -88,31 +91,27 @@ int main(int argc, char *argv[]) {
 
     // Main game loop
     while (true) {
+        // Reset next state 
+        memset(next, 0, sizeof(int) * SIZE * SIZE);
         // Loop over all cells
         for (i = 0; i < n; i++) {
             for (j = 0; j < n; j++) {
                 num_neighbors = count_neighbors(state, i, j);
+                // If there are 3 enemies, the cell switches side.
+                // 3 friendlies takes precedence over 3 enemies, so if
+                // there are exactly 3 of each, the cell remains the same.
+
                 // Living Yangs
-                if (state[i][j] == 1) {
-                    if (num_neighbors <= 1) {
-                        next[i][j] = 0;
-                    } else if (num_neighbors >= 4) {
-                        next[i][j] = 0;
-                    } else if (num_neighbors == 3) {
+                if (state[i][j] == YANG) {
+                    if (num_neighbors == 2 || num_neighbors == 3) {
                         next[i][j] = YANG;
-                    } // DO I NEED MORE CONDITIONS FOR TURNCOATS?
-                // Living Kohms
-                } else if (state[i][j] == KOHM){
-                    if (num_neighbors >= -1) {
-                        next[i][j] = 0;
-                    } else if (num_neighbors <= -4) {
-                        next[i][j] = 0;
-                    } else if (num_neighbors == -3) {
+                    }
+                } else if (state[i][j] == KOHM) {
+                    if (num_neighbors == -2 || num_neighbors == -3) {
                         next[i][j] = KOHM;
                     }
-                // Dead cells
                 } else {
-                    if (num_neighbors == 3) { 
+                    if (num_neighbors == 3) {
                         next[i][j] = YANG;
                     } else if (num_neighbors == -3) {
                         next[i][j] = KOHM;
@@ -127,11 +126,8 @@ int main(int argc, char *argv[]) {
                 state[i][j] = next[i][j];
             }
         }  
-
         display(state);
-
     }
-
 }
 
 // Print current game state to screen
@@ -152,7 +148,7 @@ void display(int state[SIZE][SIZE]) {
         printf("\n" RESET);
     }
 
-    usleep(1000 * 33);  //microseconds 
+    usleep(1000 * 100);  // microseconds 
 }
 
 int count_neighbors(int state[SIZE][SIZE], int i, int j) {
