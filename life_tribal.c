@@ -8,7 +8,7 @@
 #include <sys/time.h>
 
 #define SIZE 36
-#define HT_SIZE 1024
+#define HT_SIZE 2048
 
 #define RESET  "\x1B[0m"
 #define RED  "\x1B[31m"
@@ -140,9 +140,9 @@ int main(int argc, char *argv[]) {
 
             printf("Enter a valid FEN string: ");
             fgets(fen_input, sizeof(fen_input), stdin);
-            // if (fen_input[strlen(fen_input) - 1] == '\n') {
-            //     fen_input[strlen(fen_input) - 1] = '\0';
-            // }
+            if (fen_input[strlen(fen_input) - 1] == '\n') {
+                fen_input[strlen(fen_input) - 1] = '\0';
+            }
             parse_fen(fen_input, state);
             break;
         case PRESET:
@@ -162,13 +162,16 @@ int main(int argc, char *argv[]) {
     }
 
     display(state);
-    printf("ADJUST SCREEN TO BE 36 LINES LONG.\n");
+    exit(0); // REMOVE THIS
+    // REMOVE
+    // REMOVE
 
     // For keeping track of how many generations have been stored
     int hash_index = 0;
 
     // Main game loop
     while (true) {
+        
         // Keep track of when this frame began
         gettimeofday(&start, NULL);
         start_ms = (((long long)start.tv_sec)*1000)+(start.tv_usec/1000);
@@ -256,7 +259,7 @@ int main(int argc, char *argv[]) {
 void display(int state[SIZE][SIZE]) {
     int i, j;
     int n = SIZE;
-    printf("\n\n\n\n\n\n\n\n\n");
+    //printf("\n\n\n\n\n\n\n\n\n");
     for (i = 0; i < SIZE; i++) {
         for (j = 0; j < n; j++) {
             switch (state[i][j]) {
@@ -328,6 +331,7 @@ void parse_fen(char *fen, int (*state)[SIZE]) {
     int j = 0;
     int cell = 0;
     while(*fen) {
+        cell = 0;
         count = 1;
         // Switch on current character
         switch (*fen) {
@@ -342,16 +346,14 @@ void parse_fen(char *fen, int (*state)[SIZE]) {
             case '7':
             case '8':
             case '9':
-                cell = 0;
                 // subtract ASCII values from characters to get integer val
                 count = *fen - '0';
                 break;
             case '/': // at a new row
-                i++;
-                j = 0;
+                j = 0; // go to start of row (1st column)
+                i++; // increase row
                 fen++;
-                cell = 0;
-                break;
+                continue;
             default: // something wrong
                 fprintf(stderr, "FEN parse error!\n");
                 exit(0);
@@ -359,7 +361,7 @@ void parse_fen(char *fen, int (*state)[SIZE]) {
 
         for (int k = 0; k < count; k++) {
             if (cell != 0) state[i][j] = cell;
-            j++;
+            j++; // increase column
         }
 
         // Read next character
