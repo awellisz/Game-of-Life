@@ -23,15 +23,14 @@
 #define KOHM -1
 
 // Some presets
-// FIX THIS THE GLIDER IS BROKEN
-#define GLIDER "1y7999/2y6999/yyy6999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999"
-#define GLIDER2 "1y7999/2y6999/yyy6999/////////////////////////////////"
-
-#define R_PENTOMINO "9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/991yy69/99yy79/991y79/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999/9999"
+#define GLIDER "1y/2y/yyy"
+#define R_PENTOMINO "////////////////991yy/99yy/991y"
+#define IMPOSTOR "///////////////99yyy/98yy/98yyyy/98yyyy/99y1y"
+#define SQUARES "///////////////95yy/95yy1y1yy/991yy"
 
 enum modes { RANDOM, MANUAL, BATCH, PRESET };
 
-int count_neighbors(int state[SIZE][SIZE], int i, int j, int is_toric);
+int count_neighbors(int state[SIZE][SIZE], int i, int j);
 void display(int state[SIZE][SIZE]);
 void parse_fen(char *fen, int (*state)[SIZE]);
 void init_hashkeys(uint64_t (*hashkeys)[SIZE][SIZE]);
@@ -49,7 +48,7 @@ int main(int argc, char *argv[]) {
     int nseed = 0;
     int n = SIZE;
     int num_neighbors, setup_mode, is_tribal, 
-        cycle_detect_on, i, j, preset_selection, is_toric_board;
+        cycle_detect_on, i, j, preset_selection;
 
     // For FEN string parsing
     int fen_buffer_size = SIZE * SIZE + SIZE;
@@ -70,7 +69,6 @@ int main(int argc, char *argv[]) {
 
     // Hash table
     // Literally just an array lmao 
-    // TURN THIS INTO A PROPER HASH TABLE LATER!!!
     uint64_t hash_table[HT_SIZE];
 
     printf("ENTER A NUMBER TO CHOOSE LIFE MODE:\n");
@@ -78,17 +76,11 @@ int main(int argc, char *argv[]) {
     printf("    1: TWO-ORGANISM (COMPETITIVE TRIBES)\n");
     scanf("%d", &is_tribal);
 
-    // REplace this with y/n probably
     printf("DO YOU WANT CYCLE DETECTION ENABLED?\n");
     printf("(Answer '0' e.g. if you explicitly want to watch cyclic pattern repeat)\n");
     printf("    0: NO\n");
     printf("    1: YES\n");
     scanf("%d", &cycle_detect_on);
-
-    printf("DO YOU WANT A TORIC BOARD?\n");
-    printf("    0: NO\n");
-    printf("    1: YES\n");
-    scanf("%d", &is_toric_board);
 
     printf("ENTER A NUMBER TO CHOOSE SETUP MODE:\n");
     printf("    0: RANDOM\n");
@@ -96,10 +88,6 @@ int main(int argc, char *argv[]) {
     printf("    2: BATCH MANUAL (INPUT FEN STRING)\n");
     printf("    3: VIEW PRESET OPTIONS\n");
     scanf("%d", &setup_mode);
-
-    // ALTERNATIVE SETUP: SOMETHING AKIN TO FEN STRINGS IN CHESS
-    // EG Y FOR YANG, K FOR KOHM, NUMBERS FOR BLANK SPACES TO COMPRESS THE
-    //   FULL 36X36 BOARD INTO A COMPRESSED STRING
 
     switch(setup_mode) {
         case RANDOM:
@@ -111,7 +99,7 @@ int main(int argc, char *argv[]) {
             for (i = 0; i < n; i++) {
                 for (j = 0; j < n; j++) {
                     rn1 = (double)rand() / RAND_MAX;
-                    if (rn1 < 0.7) {
+                    if (rn1 < 0.6) {
                         state[i][j] = 0;
                     } else { 
                         if (is_tribal && (j > n/2)) {
@@ -149,11 +137,15 @@ int main(int argc, char *argv[]) {
             printf("ENTER A NUMBER TO CHOOSE A PRESET:\n");
             printf("    0: GLIDER\n");
             printf("    1: R PENTOMINO\n");
+            printf("    2: IMPOSTOR\n");
+            printf("    3: 2 SQUARES\n");
             scanf("%d", &preset_selection);
 
             switch(preset_selection) {
                 case 0: parse_fen(GLIDER, state); break;
                 case 1: parse_fen(R_PENTOMINO, state); break;
+                case 2: parse_fen(IMPOSTOR, state); break;
+                case 3: parse_fen(SQUARES, state); break;
                 default: break;
             }
 
@@ -162,16 +154,15 @@ int main(int argc, char *argv[]) {
     }
 
     display(state);
-    exit(0); // REMOVE THIS
-    // REMOVE
-    // REMOVE
 
     // For keeping track of how many generations have been stored
     int hash_index = 0;
 
+    int total_generations = 0;
+
     // Main game loop
     while (true) {
-        
+        total_generations++;
         // Keep track of when this frame began
         gettimeofday(&start, NULL);
         start_ms = (((long long)start.tv_sec)*1000)+(start.tv_usec/1000);
@@ -184,7 +175,7 @@ int main(int argc, char *argv[]) {
         for (i = 0; i < n; i++) {
             for (j = 0; j < n; j++) {
 
-                num_neighbors = count_neighbors(state, i, j, is_toric_board);
+                num_neighbors = count_neighbors(state, i, j);
 
                 // Living Yangs
                 switch (state[i][j]) {
@@ -222,6 +213,7 @@ int main(int argc, char *argv[]) {
             for (i = 0; i < HT_SIZE; i++) {
                 if (hashkey == hash_table[i]) {
                     printf("Cycle detected with a period of %d generations.\n", hash_index - i + 1);
+                    printf("Total game length: %d\n", total_generations);
                     if (is_tribal) announce_winner(state);
                     exit(0);
                 }
@@ -247,7 +239,7 @@ int main(int argc, char *argv[]) {
         // Get render time in milliseconds
         stop_ms = (((long long)stop.tv_sec)*1000)+(stop.tv_usec/1000);
         timediff = start_ms - stop_ms;
-        // Sleep for the rest of the frame
+        // Sleep for the rest of the frame (keeps a consistent frame rate)
         if (timediff < ms_per_frame) {
             usleep(1000 * (ms_per_frame - timediff));
         }
@@ -259,11 +251,11 @@ int main(int argc, char *argv[]) {
 void display(int state[SIZE][SIZE]) {
     int i, j;
     int n = SIZE;
-    //printf("\n\n\n\n\n\n\n\n\n");
+    printf("\n\n\n\n\n\n\n\n");
     for (i = 0; i < SIZE; i++) {
         for (j = 0; j < n; j++) {
             switch (state[i][j]) {
-                case YANG: printf(CYN "\u2588\u2588"); break;
+                case YANG: printf(BLUE "\u2588\u2588"); break;
                 case KOHM: printf(RED "\u2588\u2588"); break;
                 default: printf("  "); break;
             }
@@ -272,28 +264,16 @@ void display(int state[SIZE][SIZE]) {
     }
 }
 
-
-// TODO: FIX IMPLEMENTATION OF NON-TORIC BOARD
-//  RIGHT NOW IT SEEMS TO ACCESS ARRAY INDICES OUT OF BOUNDS AND PROBABLY
-//  JUST GRABS RANDOM LARGE VALUES, KILLING THE CELL BY DEFAULT.
-//  MAKE IT SO THAT THE GAMEBOARD SEEMS LIKE A SMALL PIECE OF
-//  AN INFINITE BOARD
-
 // Count number of neighbors around a cell
-int count_neighbors(int state[SIZE][SIZE], int i, int j, int is_toric) {
+int count_neighbors(int state[SIZE][SIZE], int i, int j) {
     int n = SIZE;
     int num_neighbors = 0;
 
-    if (is_toric) {
-        // Modulo arithmetic for toroidal board
-       num_neighbors = state[(i-1+n)%n][(j-1+n)%n] + state[(i+n)%n][(j-1+n)%n] + state[(i+1)%n][(j-1+n)%n] +
-                     state[(i-1+n)%n][(j+n)%n]                              + state[(i+1)%n][(j+n)%n] +
-                     state[(i-1+n)%n][(j+1)%n] + state[(i+n)%n][(j+1)%n] + state[(i+1)%n][(j+1)%n];
-    } else {
-        num_neighbors = state[i-1][j-1] + state[i][j-1] + state[i+1][j-1] +
-                        state[i-1][j]                   + state[i+1][j] +
-                        state[i-1][j+1] + state[i][j+1] + state[i+1][j+1];
-    }
+    // Modulo arithmetic for toroidal board
+    num_neighbors = state[(i-1+n)%n][(j-1+n)%n] + state[(i+n)%n][(j-1+n)%n] + state[(i+1)%n][(j-1+n)%n] +
+                    state[(i-1+n)%n][(j+n)%n]                              + state[(i+1)%n][(j+n)%n] +
+                    state[(i-1+n)%n][(j+1)%n] + state[(i+n)%n][(j+1)%n] + state[(i+1)%n][(j+1)%n];
+
     return num_neighbors;
 
 }
