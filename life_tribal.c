@@ -146,6 +146,7 @@ int main(int argc, char *argv[]) {
 
             printf("Enter a valid FEN string: ");
             fgets(fen_input, sizeof(fen_input), stdin);
+            // Strip trailing newline
             if (fen_input[strlen(fen_input) - 1] == '\n') {
                 fen_input[strlen(fen_input) - 1] = '\0';
             }
@@ -268,7 +269,7 @@ int main(int argc, char *argv[]) {
 
 // Print current game state to screen
 void display(int state[SIZE][SIZE]) {
-    system("clear");
+    system("clear"); // prevents flickering
     int i, j;
     int n = SIZE;
     printf("\n");
@@ -276,6 +277,7 @@ void display(int state[SIZE][SIZE]) {
     for (i = 0; i < SIZE; i++) {
         for (j = 0; j < n; j++) {
             switch (state[i][j]) {
+                // 2 Unicode rectangles make up one square cell
                 case YANG: printf(BLUE "\u2588\u2588"); break;
                 case KOHM: printf(RED "\u2588\u2588"); break;
                 default: printf("  "); break;
@@ -293,7 +295,7 @@ int count_neighbors(int state[SIZE][SIZE], int i, int j) {
         for(int dj = -1; dj <= 1; dj++) {
             // Skip the cell itself
             if(di == 0 && dj == 0) continue; 
-            // Handling cyclic boundary
+            // Handling toric boundary
             int ni = (i + di + SIZE) % SIZE;
             int nj = (j + dj + SIZE) % SIZE;
             num_neighbors += state[ni][nj];
