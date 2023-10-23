@@ -8,8 +8,6 @@
 #include <sys/time.h>
 
 #define SIZE 36
-#define WIDTH 36
-#define HEIGHT 36
 #define HT_SIZE 2048
 
 #define RESET  "\x1B[0m"
@@ -245,22 +243,13 @@ int count_neighbors(int state[SIZE][SIZE], int color[SIZE][SIZE], int i, int j, 
     int num_neighbors = 0;
     int total_color = 0;
 
-    // // Modulo arithmetic for toroidal board
-    // num_neighbors = state[(i-1+n)%n][(j-1+n)%n] + state[(i+n)%n][(j-1+n)%n] + state[(i+1)%n][(j-1+n)%n] +
-    //                 state[(i-1+n)%n][(j+n)%n]                              + state[(i+1)%n][(j+n)%n] +
-    //                 state[(i-1+n)%n][(j+1)%n] + state[(i+n)%n][(j+1)%n] + state[(i+1)%n][(j+1)%n];
-
-    // int total_color = color[(i-1+n)%n][(j-1+n)%n] + color[(i+n)%n][(j-1+n)%n] + color[(i+1)%n][(j-1+n)%n] +
-    //                 color[(i-1+n)%n][(j+n)%n]                              + color[(i+1)%n][(j+n)%n] +
-    //                 color[(i-1+n)%n][(j+1)%n] + color[(i+n)%n][(j+1)%n] + color[(i+1)%n][(j+1)%n];
-
-    for(int dx = -1; dx <= 1; dx++) {
-        for(int dy = -1; dy <= 1; dy++) {
+    for(int di = -1; di <= 1; di++) {
+        for(int dj = -1; dj <= 1; dj++) {
             // Skip the cell itself
-            if(dx == 0 && dy == 0) continue; 
-            // Handling cyclic boundary
-            int ni = (i + dx + WIDTH) % WIDTH;
-            int nj = (j + dy + HEIGHT) % HEIGHT;
+            if(di == 0 && dj == 0) continue; 
+            // Handling toric boundary
+            int ni = (i + di + SIZE) % SIZE;
+            int nj = (j + dj + SIZE) % SIZE;
 
             num_neighbors += state[ni][nj];
             total_color += color[ni][nj];
