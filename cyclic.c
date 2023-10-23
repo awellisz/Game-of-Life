@@ -30,6 +30,8 @@ int main(int argc, char *argv[]) {
     int d = 1;
     // Threshold number of neighbors to get 'eaten'
     int threshold = 1;
+    // moore or von neumann neighborhood
+    int neighborhood = 1;
 
     // Current game state
     int state[HEIGHT][WIDTH] = {0};
@@ -40,12 +42,17 @@ int main(int argc, char *argv[]) {
     scanf("%d", &nseed);
     srand(nseed);
 
-    printf("ENTER VON NEUMANN NEIGHBORHOOD SIZE\n");
-    printf("(i.e. how far away from each cell to search for neighbors that can eat it)");
+    printf("\nCHOOSE CELL NEIGHBORHOOD TYPE\n");
+    printf("    0: Moore Neighborhood (square around cell)\n");
+    printf("    1: von Neumann Neighborhood (excludes corners)\n");
+    scanf("%d", &neighborhood);
+
+    printf("\nENTER NEIGHBORHOOD SIZE\n");
+    printf("(i.e. how far away from each cell to search for neighbors that can eat it)\n");
     scanf("%d", &d);
 
-    printf("ENTER CELL EATING THRESHOLD (should not be larger than above)\n");
-    printf("(i.e. how many neighbors that can eat the current cell\nare required before the cell is actually eaten)\n");
+    printf("\nENTER CELL EATING THRESHOLD\n");
+    printf("(i.e. how many neighbors that can eat the current cell are required before the cell is actually eaten)\n");
     scanf("%d", &threshold);
 
     // Generate random board
@@ -56,6 +63,7 @@ int main(int argc, char *argv[]) {
         }
     }
     printf("\x1b[?25l"); // hide the cursor   
+
     // Main game loop
     while (true) {
         // Keep track of when this frame began
@@ -77,8 +85,13 @@ int main(int argc, char *argv[]) {
                     for(int dy = -d; dy <= d; dy++) {
                         // Skip the cell itself
                         if(dx == 0 && dy == 0) continue; 
-                        // Manhattan distance <= d
-                        if(abs(dx) + abs(dy) > d) continue;
+                        
+                        // in von Neumann neighborhood case
+                        if (neighborhood==1) {
+                            // Manhattan distance <= d
+                            if(abs(dx) + abs(dy) > d) continue;
+                        }
+
                         // Handling cyclic boundary
                         int ni = (i + dy + HEIGHT) % HEIGHT;
                         int nj = (j + dx + WIDTH) % WIDTH;
@@ -138,7 +151,6 @@ void display(int state[HEIGHT][WIDTH]) {
     for (i = 0; i < HEIGHT; i++) {
         for (j = 0; j < WIDTH; j++) {
             printf("%s\u2588\u2588", colors[state[i][j]]); 
-            //printf("%s\u2588", colors[state[i][j]]); 
         }
         printf(RESET "\n");
     }
