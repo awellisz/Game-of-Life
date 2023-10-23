@@ -8,8 +8,8 @@
 #include <sys/time.h>
 
 #define NUM_TYPES 7
-#define HEIGHT 38
-#define WIDTH 140
+#define HEIGHT 32
+#define WIDTH 64
 
 #define RESET  "\x1B[0m"
 
@@ -20,14 +20,14 @@ int main(int argc, char *argv[]) {
     //  to keep the framerate consistent. Probably not ideal
     struct timeval stop, start;
     long long start_ms, stop_ms, timediff;
-    int framerate = 10; // Frames per second
+    int framerate = 5; // Frames per second
     int ms_per_frame = 1000 / framerate; 
 
     int nseed = 12345;
     int i, j;
 
     // How far to search for neighbors
-    int depth = 1;
+    int d = 1;
     // Threshold number of neighbors to get 'eaten'
     int threshold = 1;
 
@@ -40,6 +40,14 @@ int main(int argc, char *argv[]) {
     scanf("%d", &nseed);
     srand(nseed);
 
+    printf("ENTER VON NEUMANN NEIGHBORHOOD SIZE\n");
+    printf("(i.e. how far away from each cell to search for neighbors that can eat it)");
+    scanf("%d", &d);
+
+    printf("ENTER CELL EATING THRESHOLD (should not be larger than above)\n");
+    printf("(i.e. how many neighbors that can eat the current cell\nare required before the cell is actually eaten)\n");
+    scanf("%d", &threshold);
+
     // Generate random board
     float rn1;
     for (i = 0; i < HEIGHT; i++) {
@@ -47,75 +55,48 @@ int main(int argc, char *argv[]) {
             state[i][j] = rand() % 7;
         }
     }
-           
-    display(state);
-
+    printf("\x1b[?25l"); // hide the cursor   
     // Main game loop
     while (true) {
-        printf("\x1b[?25l"); // hide the cursor
         // Keep track of when this frame began
         gettimeofday(&start, NULL);
         start_ms = (((long long)start.tv_sec)*1000)+(start.tv_usec/1000);
 
+        display(state);
+
         // Reset next state
         memset(next, 0, sizeof(int) * HEIGHT * WIDTH);
 
-        int n = HEIGHT;
-        int m = WIDTH;
+        int num_neighbors;
 
         for (i = 0; i < HEIGHT; i++) {
             for (j = 0; j < WIDTH; j++) {
+                num_neighbors = 0;
 
-                int num_neighbors = 0;
+                for(int dx = -d; dx <= d; dx++) {
+                    for(int dy = -d; dy <= d; dy++) {
+                        // Skip the cell itself
+                        if(dx == 0 && dy == 0) continue; 
+                        // Manhattan distance <= d
+                        if(abs(dx) + abs(dy) > d) continue;
+                        // Handling cyclic boundary
+                        int ni = (i + dy + HEIGHT) % HEIGHT;
+                        int nj = (j + dx + WIDTH) % WIDTH;
 
-                // for(int di = -depth; di <= depth; di++) {
-                //     for(int dj = -depth; dj <= depth; dj++) {
-                //         // Skip the cell itself
-                //         if(di == 0 && dj == 0) continue; 
-                //         // Von Neumann neighborhood
-                //         if(abs(di) + abs(dj) > depth) continue;
-
-                //         int iidx = (i + di) % HEIGHT;
-                //         int jidx = (j + dj) % WIDTH;
-                //         // Handling cyclic boundary
-                //         int ni = (iidx < 0) ? iidx + HEIGHT : iidx;
-                //         int nj = (jidx < 0) ? jidx + WIDTH : jidx;
-                //         // int ni = (i + di + HEIGHT) % HEIGHT;
-                //         // int nj = (j + dj + WIDTH) % WIDTH;
-
-                //         if (state[ni][nj] == (state[i][j]+1)) {
-                //             num_neighbors += 1;
-                //         } else if ((state[i][j] ==6) && (state[ni][nj] == 0)) {
-                //             num_neighbors += 1;
-                //         }
-                //     }
-                // }
-
-                // if (num_neighbors >= threshold) {
-                //     next[i][j] = state[i][j] + 1;
-                // } else {
-                //     next[i][j] = state[i][j];
-                // }
-
-                // Von Neumann neighborhood
-                int neumann_neighbors[4] = {
-                    state[(i-1+n)%n][(j+m)%m], // bottom
-                    state[(i+n)%n][(j-1+m)%m], // left
-                    state[(i+1+n)%n][(j+m)%m], // top
-                    state[(i+n)%n][(j+1+m)%m], //right
-                };
-
-                for (int k = 0; k < 4; k++) {
-                    if (neumann_neighbors[k] == (state[i][j] + 1)) {
-                        next[i][j] = (state[i][j] + 1);
-                        break;
-                    } else if ((state[i][j] == 6) && (neumann_neighbors[k] == 0)) {
-                        next[i][j] = 0;
-                        break;
-                    } else {
-                        next[i][j] = state[i][j];
+                        if (state[ni][nj] == (state[i][j] + 1)) {
+                            num_neighbors++;
+                        } else if ((state[i][j] == 6) && (state[ni][nj] == 0)) {
+                            num_neighbors++;
+                        }
                     }
                 }
+
+                if (num_neighbors >= threshold) {
+                    next[i][j] = (state[i][j] + 1) % 7;
+                } else {
+                    next[i][j] = state[i][j];
+                }
+                
 
             }
         }
@@ -126,8 +107,6 @@ int main(int argc, char *argv[]) {
                 state[i][j] = next[i][j];
             }
         }  
-        display(state);
-        
 
         gettimeofday(&stop, NULL);
         // Get render time in milliseconds
