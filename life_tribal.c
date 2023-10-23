@@ -33,7 +33,6 @@ enum modes { RANDOM, MANUAL, BATCH, PRESET };
 int count_neighbors(int state[SIZE][SIZE], int i, int j);
 void display(int state[SIZE][SIZE]);
 void parse_fen(char *fen, int (*state)[SIZE]);
-void init_hashkeys(uint64_t (*hashkeys)[SIZE][SIZE]);
 uint64_t rand_U64();
 void announce_winner(int state[SIZE][SIZE]);
 
@@ -42,13 +41,11 @@ int main(int argc, char *argv[]) {
     //  to keep the framerate consistent. Probably not ideal
     struct timeval stop, start;
     long long start_ms, stop_ms, timediff;
-    int framerate = 10; // Frames per second
-    int ms_per_frame = 1000 / framerate; 
 
     int nseed = 0;
     int n = SIZE;
     int num_neighbors, setup_mode, is_tribal, 
-        cycle_detect_on, i, j, preset_selection;
+        cycle_detect_on, i, j, preset_selection, speed_selection;
 
     // For FEN string parsing
     int fen_buffer_size = SIZE * SIZE + SIZE;
@@ -82,12 +79,33 @@ int main(int argc, char *argv[]) {
     printf("    1: YES\n");
     scanf("%d", &cycle_detect_on);
 
+    printf("CHOOSE ANIMATION SPEED:\n");
+    printf("    0: 1 FPS (VERY SLOW)\n");
+    printf("    1: 5 FPS (SLOW)\n");
+    printf("    2: 10 FPS (NORMAL)\n");
+    printf("    3: 20 FPS (FAST)\n");
+    printf("    4: 50 FPS (VERY FAST)\n");
+    scanf("%d", &speed_selection);
+
     printf("ENTER A NUMBER TO CHOOSE SETUP MODE:\n");
     printf("    0: RANDOM\n");
     printf("    1: MANUAL (SET INDIVIDUAL CELLS)\n");
     printf("    2: BATCH MANUAL (INPUT FEN STRING)\n");
     printf("    3: VIEW PRESET OPTIONS\n");
     scanf("%d", &setup_mode);
+
+    int framerate = 10; // Frames per second
+    switch(speed_selection) {
+        case 0: framerate = 1; break;
+        case 1: framerate = 5; break;
+        case 2: framerate = 10; break;
+        case 3: framerate = 20; break;
+        case 4: framerate = 50; break;
+        default: 
+            printf("Invalid input.\n"); 
+            exit(0);
+    }
+    int ms_per_frame = 1000 / framerate; 
 
     switch(setup_mode) {
         case RANDOM:
@@ -137,8 +155,8 @@ int main(int argc, char *argv[]) {
             printf("ENTER A NUMBER TO CHOOSE A PRESET:\n");
             printf("    0: GLIDER\n");
             printf("    1: R PENTOMINO\n");
-            printf("    2: IMPOSTOR\n");
-            printf("    3: 2 SQUARES\n");
+            printf("    2: IMPOSTOR (sus)\n");
+            printf("    3: 2 SQUARES (cool symmetric patterns)\n");
             scanf("%d", &preset_selection);
 
             switch(preset_selection) {
@@ -204,7 +222,6 @@ int main(int argc, char *argv[]) {
                             next[i][j] = KOHM;
                         }
                 }
-
             }
         }
 
@@ -212,6 +229,7 @@ int main(int argc, char *argv[]) {
         if (cycle_detect_on) {
             for (i = 0; i < HT_SIZE; i++) {
                 if (hashkey == hash_table[i]) {
+                    printf("\x1b[?25h"); // show the cursor
                     printf("Cycle detected with a period of %d generations.\n", hash_index - i + 1);
                     printf("Total game length: %d\n", total_generations);
                     if (is_tribal) announce_winner(state);
@@ -249,9 +267,12 @@ int main(int argc, char *argv[]) {
 
 // Print current game state to screen
 void display(int state[SIZE][SIZE]) {
+    system("clear");
+    printf("\x1b[?25l"); // hide the cursor
     int i, j;
     int n = SIZE;
-    printf("\n\n\n\n\n\n\n\n");
+    printf("\n");
+    
     for (i = 0; i < SIZE; i++) {
         for (j = 0; j < n; j++) {
             switch (state[i][j]) {
