@@ -7,11 +7,9 @@
 #include <stdint.h>
 #include <sys/time.h>
 
-#define SIZE 10
 #define NUM_TYPES 7
-
-#define HEIGHT 40
-#define WIDTH 60
+#define HEIGHT 38
+#define WIDTH 140
 
 #define RESET  "\x1B[0m"
 
@@ -22,12 +20,16 @@ int main(int argc, char *argv[]) {
     //  to keep the framerate consistent. Probably not ideal
     struct timeval stop, start;
     long long start_ms, stop_ms, timediff;
-    int framerate = 5; // Frames per second
+    int framerate = 10; // Frames per second
     int ms_per_frame = 1000 / framerate; 
 
     int nseed = 12345;
     int i, j;
 
+    // How far to search for neighbors
+    int depth = 1;
+    // Threshold number of neighbors to get 'eaten'
+    int threshold = 1;
 
     // Current game state
     int state[HEIGHT][WIDTH] = {0};
@@ -38,6 +40,7 @@ int main(int argc, char *argv[]) {
     scanf("%d", &nseed);
     srand(nseed);
 
+    // Generate random board
     float rn1;
     for (i = 0; i < HEIGHT; i++) {
         for (j = 0; j < WIDTH; j++) {
@@ -49,7 +52,7 @@ int main(int argc, char *argv[]) {
 
     // Main game loop
     while (true) {
-
+        printf("\x1b[?25l"); // hide the cursor
         // Keep track of when this frame began
         gettimeofday(&start, NULL);
         start_ms = (((long long)start.tv_sec)*1000)+(start.tv_usec/1000);
@@ -60,16 +63,46 @@ int main(int argc, char *argv[]) {
         int n = HEIGHT;
         int m = WIDTH;
 
-
-
         for (i = 0; i < HEIGHT; i++) {
             for (j = 0; j < WIDTH; j++) {
+
+                int num_neighbors = 0;
+
+                // for(int di = -depth; di <= depth; di++) {
+                //     for(int dj = -depth; dj <= depth; dj++) {
+                //         // Skip the cell itself
+                //         if(di == 0 && dj == 0) continue; 
+                //         // Von Neumann neighborhood
+                //         if(abs(di) + abs(dj) > depth) continue;
+
+                //         int iidx = (i + di) % HEIGHT;
+                //         int jidx = (j + dj) % WIDTH;
+                //         // Handling cyclic boundary
+                //         int ni = (iidx < 0) ? iidx + HEIGHT : iidx;
+                //         int nj = (jidx < 0) ? jidx + WIDTH : jidx;
+                //         // int ni = (i + di + HEIGHT) % HEIGHT;
+                //         // int nj = (j + dj + WIDTH) % WIDTH;
+
+                //         if (state[ni][nj] == (state[i][j]+1)) {
+                //             num_neighbors += 1;
+                //         } else if ((state[i][j] ==6) && (state[ni][nj] == 0)) {
+                //             num_neighbors += 1;
+                //         }
+                //     }
+                // }
+
+                // if (num_neighbors >= threshold) {
+                //     next[i][j] = state[i][j] + 1;
+                // } else {
+                //     next[i][j] = state[i][j];
+                // }
+
                 // Von Neumann neighborhood
                 int neumann_neighbors[4] = {
-                    state[(i-1+n)%n][(j+m)%m], // left
-                    state[(i+n)%n][(j-1+m)%m], // top
-                    state[(i+1)%n][(j+m)%m], // right
-                    state[(i+n)%n][(j+m)%m] // bottom
+                    state[(i-1+n)%n][(j+m)%m], // bottom
+                    state[(i+n)%n][(j-1+m)%m], // left
+                    state[(i+1+n)%n][(j+m)%m], // top
+                    state[(i+n)%n][(j+1+m)%m], //right
                 };
 
                 for (int k = 0; k < 4; k++) {
@@ -84,29 +117,8 @@ int main(int argc, char *argv[]) {
                     }
                 }
 
-                // Moore neighborhood
-                // int moore_neighbors[8] = {
-                //     state[(i-1+n)%n][(j-1+m)%m], 
-                //     state[(i+n)%n][(j-1+m)%m], 
-                //     state[(i+1)%n][(j-1+m)%m], 
-                //     state[(i-1+n)%n][(j+m)%m],
-                //     state[(i+1)%n][(j+m)%m],
-                //     state[(i-1+n)%n][(j+1)%m],
-                //     state[(i+n)%n][(j+1)%m],
-                //     state[(i+1)%n][(j+1)%m]
-                // };
-                // for (int k = 0; k < 8; k++) {
-                //     if (moore_neighbors[k] == (state[i][j] + 1)) {
-                //         next[i][j] = (state[i][j] + 1);
-                //     } else if ((state[i][j] == 6) && (moore_neighbors[k] == 0)) {
-                //         next[i][j] = 0;
-                //     } else {
-                //         next[i][j] = state[i][j];
-                //     }
-                // }
             }
         }
-
 
         // Set current game state to next game state
         for (i = 0; i < HEIGHT; i++) {
@@ -130,10 +142,9 @@ int main(int argc, char *argv[]) {
 
 // Print current game state to screen
 void display(int state[HEIGHT][WIDTH]) {
+    system("clear");
     int i, j;
 
-    // char *colors[6] = {"\x1B[31m", "\x1B[32m", "\x1B[33m", 
-    //                    "\x1B[34m", "\x1B[35m", "\x1B[36m"};
     char *colors[NUM_TYPES] = {
         "\x1b[38;5;163m", // violet
         "\x1b[38;5;17m", // indigo
@@ -148,7 +159,6 @@ void display(int state[HEIGHT][WIDTH]) {
     for (i = 0; i < HEIGHT; i++) {
         for (j = 0; j < WIDTH; j++) {
             printf("%s\u2588\u2588", colors[state[i][j]]); 
-            //printf("%d ", state[i][j]);
             //printf("%s\u2588", colors[state[i][j]]); 
         }
         printf(RESET "\n");
